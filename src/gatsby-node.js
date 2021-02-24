@@ -1,6 +1,8 @@
 const { createRemoteFileNode } = require(`gatsby-source-filesystem`);
+const { createFileNode } = require(`gatsby-source-filesystem/create-file-node`);
 const get = require('lodash/get');
 let i = 0;
+const getRealPath = require('path').resolve;
 
 exports.onCreateNode = async (
   { node, actions, store, cache, createNodeId, createContentDigest, reporter },
@@ -9,6 +11,7 @@ exports.onCreateNode = async (
   const { createNode } = actions;
   const {
     nodeType,
+    placeholder,
     imagePath,
     name = 'localImage',
     auth = {},
@@ -20,6 +23,7 @@ exports.onCreateNode = async (
     store,
     cache,
     createNode,
+    placeholder,
     createNodeId,
     createContentDigest,
     auth,
@@ -72,7 +76,13 @@ function getCacheKeyForNodeId(nodeId) {
 }
 
 async function createImageNodes(urls, node, options) {
-  const { name, imagePathSegments, prepareUrl, ...restOfOptions } = options;
+  const {
+    name,
+    placeholder,
+    imagePathSegments,
+    prepareUrl,
+    ...restOfOptions
+  } = options;
   let fileNode;
 
   if (!urls) {
@@ -85,14 +95,31 @@ async function createImageNodes(urls, node, options) {
         if (typeof prepareUrl === 'function') {
           url = prepareUrl(url);
         }
-
+        fileNode = undefined;
         try {
           fileNode = await createRemoteFileNode({
             ...restOfOptions,
             url,
             parentNodeId: node.id,
           });
+          console.log(url, node.id);
         } catch (e) {
+          if (placeholder) {
+            ++i;
+            try {
+              fileNode = await createFileNode(
+                getRealPath(placeholder),
+                args => options.createNodeId(`${i}`),
+                {}
+              );
+              fileNode.parent = node.id;
+              await options.createNode(fileNode, {
+                name: `gatsby-source-filesystem`,
+              });
+            } catch (e) {
+              console.log('HELL ERROR', e);
+            }
+          }
           console.error('gatsby-plugin-remote-images ERROR:', e);
         }
         return fileNode;
@@ -121,7 +148,13 @@ async function createImageNodes(urls, node, options) {
 
 // Creates a file node and associates the parent node to its new child
 async function createImageNode(url, node, options) {
-  const { name, imagePathSegments, prepareUrl, ...restOfOptions } = options;
+  const {
+    name,
+    placeholder,
+    imagePathSegments,
+    prepareUrl,
+    ...restOfOptions
+  } = options;
   let fileNode;
 
   if (typeof prepareUrl === 'function') {
@@ -136,20 +169,17 @@ async function createImageNode(url, node, options) {
     });
   } catch (e) {
     ++i;
-    console.error('gatsby-plugin-remote-images ERROR:', e);
+    // console.error('gatsby-plugin-remote-images ERROR:', e);
     console.log(`creating fake file node ${i}...`);
-    fileNode = await options.createNode(
-      {
-        id: options.createNodeId(`${i}`),
-        parent: node.id,
-        internal: {
-          type: 'File',
-          mediaType: 'application/octet-stream',
-          contentDigest: options.createContentDigest(`${i}`),
-        },
-      },
-      { name: 'gatsby-source-filesystem' }
-    );
+    if (placeholder) {
+      fileNode = await createFileNode(
+        getRealPath(placeholder),
+        args => options.createNodeId(`${i}`),
+        {}
+      );
+      fileNode.parent = node.id;
+      await options.createNode(fileNode, { name: `gatsby-source-filesystem` });
+    }
   }
 
   // Store the mapping between the current node and the newly created File node

@@ -1,5 +1,5 @@
 {
-  "name": "@aaaz/gatsby-plugin-remote-images",
+  "name": "wave909-gatsby-plugin-remote-images",
   "version": "2.2.0",
   "description": "Gatsby plugin to use gatsby-image on remote images from absolute path string fields on other nodes.",
   "author": "Grayson Hicks <graysonhicks@gmail.com>",
