@@ -102,14 +102,13 @@ async function createImageNodes(urls, node, options) {
             url,
             parentNodeId: node.id,
           });
-          console.log(url, node.id);
         } catch (e) {
           if (placeholder) {
             ++i;
             try {
               fileNode = await createFileNode(
                 getRealPath(placeholder),
-                args => options.createNodeId(`${i}`),
+                options.createNodeId,
                 {}
               );
               fileNode.parent = node.id;
@@ -117,7 +116,7 @@ async function createImageNodes(urls, node, options) {
                 name: `gatsby-source-filesystem`,
               });
             } catch (e) {
-              console.log('HELL ERROR', e);
+              console.log('PLACEHOLDER ERROR', e);
             }
           }
           console.error('gatsby-plugin-remote-images ERROR:', e);
@@ -169,12 +168,12 @@ async function createImageNode(url, node, options) {
     });
   } catch (e) {
     ++i;
-    // console.error('gatsby-plugin-remote-images ERROR:', e);
+    console.error('gatsby-plugin-remote-images ERROR:', e);
     console.log(`creating fake file node ${i}...`);
     if (placeholder) {
       fileNode = await createFileNode(
         getRealPath(placeholder),
-        args => options.createNodeId(`${i}`),
+        options.createNodeId,
         {}
       );
       fileNode.parent = node.id;
